@@ -34,8 +34,8 @@ with open(os.path.join(script_dir, 'cred.json')) as json_cred:
 #Setup Panoptic API##############################################################
 #################################################################################
 panoptic_token = cred['panoptic_token']
-#panoptic_url = 'https://api.panoptic.io/cdnpoli/'
-panoptic_url = 'http://localhost/panoptic.io/api/cdnpoli/'
+panoptic_url = 'https://api.panoptic.io/cdnpoli/'
+#panoptic_url = 'http://localhost/panoptic.io/api/cdnpoli/'
 
 #################################################################################
 #Setup Twitter API###############################################################
