@@ -109,11 +109,9 @@ def processTweet(tweet):
     try:
         user = tweet['user']
     except:
-        try:
-            user = tweet.author
-        except:
-            print('No user!')
-            return False
+        print('No user!')
+        return False
+
     #Check if user is in our spam list
     try:
         result = requests.get(panoptic_url + 'spammers?data=twitter&name=' + user['screen_name']).json()['data']
@@ -138,11 +136,14 @@ def processTweet(tweet):
             if not result:
                 if(tweet['truncated']):
                     try:
-                        text = tweet['full_text']
+                        text = tweet['extended_tweet']['full_text']
+                        entities = tweet['extended_tweet']['entities']
                     except:
                         text = tweet['text']
+                        entities = tweet['entities']
                 else:
                     text = tweet['text']
+                    entities = tweet['entities']
 
                 #print(json.dumps(user['name'], indent=4, separators=(',', ': ')))
                 print(json.dumps(user['screen_name'], indent=4, separators=(',', ': ')))
@@ -155,6 +156,7 @@ def processTweet(tweet):
                 #Get time
                 created_at = time.strptime(tweet['created_at'], "%a %b %d %H:%M:%S +0000 %Y")
                 unix = time.strftime('%s', created_at)
+                datetime = time.strftime('%Y-%m-%d %H:%M:00', created_at)
                 #Add tweet
                 favorites = tweet['favorite_count'] if tweet['favorite_count'] else 0
                 retweets = tweet['retweet_count'] if tweet['retweet_count'] else 0
@@ -175,37 +177,21 @@ def processTweet(tweet):
                     except:
                         pass
                 #Add connections
-                if tweet['entities']['user_mentions']:
-                    for entity in tweet['entities']['user_mentions']:
+                if entities['user_mentions']:
+                    for entity in entities['user_mentions']:
                         if(tweet['in_reply_to_user_id'] == entity['id']):
                             requests.post(panoptic_url + 'connection', data={'userid' : user_id, 'twitterid' : entity['id'], 'screenname' : entity['screen_name'], 'name' : entity['name'], 'tweetid' : tweet_id, 'replyid' : tweet['in_reply_to_status_id'], 'action' : 'reply', 'token' : panoptic_token, 'data' : 'twitter'})
                         else:
                             requests.post(panoptic_url + 'connection', data={'userid' : user_id, 'twitterid' : entity['id'], 'screenname' : entity['screen_name'], 'name' : entity['name'], 'tweetid' : tweet_id, 'action' : 'at', 'token' : panoptic_token, 'data' : 'twitter'})
 
-                #Check for new words
-                pattern = r'(?:^|\s)(\#[^\W\d_]+)'
-                search = re.findall(pattern, strip_non_ascii(text))
-                search = [x.lower() for x in search]
-                newwords = list(set(search) - set(hashtags))
-                #Add the new words to our keyword list
-                #if (len(keywords) + len(newwords)) < 500:
-                if newwords:
-                    print(newwords)
-                    for newword in newwords:
-                        requests.post(panoptic_url + 'hashtag', data={'tag' : newword, 'token' : panoptic_token})
-                        hashtags.append(newword)
-                #Get current date to check against the database and add to each row
-                datetime = time.strftime('%Y-%m-%d %H:%M:00', created_at)
-
                 topics = []
-                t = tweet['text'].lower()
-                for tag in hashtags:
-                    if tag in t.split():
-                        topics.append(tag)
+                if entities['hashtags']:
+                    for entity in entities['hashtags']:
+                        topics.append(entity['text'])
                         #Post mention to api
-                        requests.post(panoptic_url + 'mention', data={'datetime' : datetime, 'topic' : tag, 'sentiment' : sentiment, 'token' : panoptic_token, 'data' : 'twitter'})
+                        requests.post(panoptic_url + 'mention', data={'datetime' : datetime, 'topic' : '#'+entity['text'].lower(), 'sentiment' : sentiment, 'token' : panoptic_token, 'data' : 'twitter'})
                         #Post connection
-                        requests.post(panoptic_url + 'connection', data={'userid' : user_id, 'hashtag' : tag, 'tweetid' : tweet_id, 'action' : 'mention', 'token' : panoptic_token, 'data' : 'twitter'})
+                        requests.post(panoptic_url + 'connection', data={'userid' : user_id, 'hashtag' : '#'+entity['text'].lower(), 'tweetid' : tweet_id, 'action' : 'mention', 'token' : panoptic_token, 'data' : 'twitter'})
 
             else:
                 tweet_id = result['tweetID']
@@ -220,8 +206,18 @@ def processTweet(tweet):
             try:
                 #print('RETWEET')
                 #print(json.dumps(tweet['retweeted_status'], indent=4, separators=(',', ': ')))
+                if(tweet['retweeted_status']['truncated']):
+                    try:
+                        text = tweet['retweeted_status']['extended_tweet']['full_text']
+                        entities = tweet['retweeted_status']['extended_tweet']['entities']
+                    except:
+                        text = tweet['retweeted_status']['text']
+                        entities = tweet['retweeted_status']['entities']
+                else:
+                    text = tweet['retweeted_status']['text']
+                    entities = tweet['retweeted_status']['entities']
+
                 result = requests.get(panoptic_url+'tweet?tweetid='+tweet['retweeted_status']['id_str']).json()['data']
-                text = tweet['retweeted_status']['text']
                 if not result:
                     analysis = tb(text)
                     sentiment = analysis.sentiment.polarity
@@ -229,6 +225,7 @@ def processTweet(tweet):
                     #Get time
                     created_at = time.strptime(tweet['created_at'], "%a %b %d %H:%M:%S +0000 %Y")
                     unix = time.strftime('%s', created_at)
+                    datetime = time.strftime('%Y-%m-%d %H:%M:00', created_at)
 
                     #Add tweet
                     tweet_id = requests.post(panoptic_url+'tweet', data={'statusid' : tweet['retweeted_status']['id'], 'userid' : user_id, 'twitterid' : tweet['retweeted_status']['user']['id'], 'tweet' : strip_non_ascii(text), 'favorites' : tweet['retweeted_status']['favorite_count'], 'retweets' : tweet['retweeted_status']['retweet_count'], 'quotes' : tweet['retweeted_status']['quote_count'], 'sentiment' : sentiment, 'unix' : unix, 'token' : panoptic_token}).json()['data']
@@ -239,15 +236,15 @@ def processTweet(tweet):
 
                 requests.post(panoptic_url + 'connection', data={'userid' : user_id, 'twitterid' : tweet['retweeted_status']['user']['id'], 'screenname' : tweet['retweeted_status']['user']['screen_name'], 'name' : tweet['retweeted_status']['user']['name'], 'tweetid' : tweet_id, 'action' : 'retweet', 'token' : panoptic_token, 'data' : 'twitter'})
 
-                t = text.lower()
-                for tag in hashtags:
-                    if tag in t.split():
-                        #print(json.dumps(text, indent=4, separators=(',', ': ')))
+                topics = []
+                if entities['hashtags']:
+                    for entity in entities['hashtags']:
+                        topics.append(entity['text'])
                         #Post mention to api
-                        requests.post(panoptic_url + 'mention', data={'datetime' : datetime, 'topic' : tag, 'sentiment' : sentiment, 'token' : panoptic_token, 'data' : 'twitter'})
+                        requests.post(panoptic_url + 'mention', data={'datetime' : datetime, 'topic' : '#'+entity['text'].lower(), 'sentiment' : sentiment, 'token' : panoptic_token, 'data' : 'twitter'})
                         #Post connection
-                        requests.post(panoptic_url + 'connection', data={'userid' : user_id, 'hashtag' : tag, 'tweetid' : tweet_id, 'action' : 'mention', 'token' : panoptic_token, 'data' : 'twitter'})
-                #print('END')
+                        requests.post(panoptic_url + 'connection', data={'userid' : user_id, 'hashtag' : '#'+entity['text'].lower(), 'tweetid' : tweet_id, 'action' : 'mention', 'token' : panoptic_token, 'data' : 'twitter'})
+
             except:
                 pass
 
