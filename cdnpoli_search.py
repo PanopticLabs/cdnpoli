@@ -34,8 +34,8 @@ with open(os.path.join(script_dir, 'cred.json')) as json_cred:
 #Setup Panoptic API##############################################################
 #################################################################################
 panoptic_token = cred['panoptic_token']
-panoptic_url = 'https://api.panoptic.io/cdnpoli/'
-#panoptic_url = 'http://localhost/panoptic.io/api/cdnpoli/'
+#panoptic_url = 'https://api.panoptic.io/cdnpoli/'
+panoptic_url = 'http://localhost/panoptic.io/api/cdnpoli/'
 
 #################################################################################
 #Setup Twitter API###############################################################
@@ -263,6 +263,7 @@ queries = buildQueryStrings()
 #num_days = 7
 startdate = search['date']
 num_days = search['days']
+last_query = search['query']
 print(startdate)
 print(num_days)
 
@@ -273,12 +274,22 @@ api = tweepy.API(auth, wait_on_rate_limit=True)
 for i in range(0, num_days):
     currentdt = startdt + timedelta(days=i)
     currentdate = datetime.strftime(currentdt, '%Y-%m-%d')
-    for query in queries:
-        print('Query: ' + query)
-        for status in tweepy.Cursor(api.search, q=query, until=currentdate).items():
-            processTweet(status._json)
     new_days = num_days - i
+    
+    querycount = 0
+    for query in queries:
+        if querycount >= last_query or startdate != currentdate:
+            print('Query: ' + query)
+            #for status in tweepy.Cursor(api.search, q=query, until=currentdate).items():
+            #    processTweet(status._json)
+
+        querycount += 1
+        #Save to json file
+        new_object = {"date" : currentdate, "days" : new_days, "query" : querycount}
+        with open(os.path.join(script_dir, 'search.json'), 'w') as search_file:
+            json.dump(new_object, search_file, indent=4)
+
     #Save to json file
-    new_object = {"date" : currentdate, "days" : new_days}
+    new_object = {"date" : currentdate, "days" : new_days, "query" : 0}
     with open(os.path.join(script_dir, 'search.json'), 'w') as search_file:
         json.dump(new_object, search_file, indent=4)
