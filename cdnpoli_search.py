@@ -115,7 +115,11 @@ def processTweet(tweet):
             print('No user!')
             return False
     #Check if user is in our spam list
-    result = requests.get(panoptic_url + 'spammers?data=twitter&name=' + user['screen_name']).json()['data']
+    try:
+        result = requests.get(panoptic_url + 'spammers?data=twitter&name=' + user['screen_name']).json()['data']
+    except:
+        print('Cannot retrieve spammer data')
+        return False
     #If user is not in spam list, continue
     if not result:
         screen_name = user['screen_name']
