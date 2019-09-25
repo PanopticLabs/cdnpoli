@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os, sys, tweepy, textblob, json, re, time, requests, urllib, subprocess
 from textblob import TextBlob as tb
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from tweepy import OAuthHandler
 from tweepy import Stream
 from tweepy.streaming import StreamListener
@@ -19,6 +19,12 @@ with open(os.path.join(script_dir, 'terms.json')) as json_terms:
     terms = json.load(json_terms)
 
 #################################################################################
+#Retrieve search values##########################################################
+#################################################################################
+with open(os.path.join(script_dir, 'search.json')) as json_search:
+    search = json.load(json_search)
+
+#################################################################################
 #Retrieve authentication variables###############################################
 #################################################################################
 with open(os.path.join(script_dir, 'cred.json')) as json_cred:
@@ -28,8 +34,8 @@ with open(os.path.join(script_dir, 'cred.json')) as json_cred:
 #Setup Panoptic API##############################################################
 #################################################################################
 panoptic_token = cred['panoptic_token']
-panoptic_url = 'https://api.panoptic.io/cdnpoli/'
-#panoptic_url = 'http://localhost/panoptic.io/api/cdnpoli/'
+#panoptic_url = 'https://api.panoptic.io/cdnpoli/'
+panoptic_url = 'http://localhost/panoptic.io/api/cdnpoli/'
 
 #################################################################################
 #Setup Twitter API###############################################################
@@ -62,13 +68,11 @@ def buildQueryStrings():
     query_array = getQuery()
     total = len(query_array)
     ranges = int(total/10)
-    print('Ranges: ' + str(ranges))
 
     for i in range(0, ranges):
         start = i*10
         end = start+10
         slice = query_array[start:end]
-        print(slice)
         query_string = ''
         first = True
         for term in slice:
@@ -76,14 +80,12 @@ def buildQueryStrings():
                 query_string += ' OR '
             query_string += term
             first = False
-        print(query_string)
         query_strings.append(query_string)
 
     #Remainder
     start = ranges*10
     end = len(query_array)
     slice = query_array[start:end]
-    print(slice)
     query_string = ''
     first = True
     for term in slice:
@@ -91,7 +93,6 @@ def buildQueryStrings():
             query_string += ' OR '
         query_string += term
         first = False
-    print(query_string)
     query_strings.append(query_string)
 
 
@@ -253,12 +254,27 @@ auth = OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_secret)
 
 queries = buildQueryStrings()
-print(queries)
 #query = getQuery()
+#startdate = '2019-09-19'
+#num_days = 7
+startdate = search['date']
+num_days = search['days']
+print(startdate)
+print(num_days)
+
+startdt = datetime.strptime(startdate, '%Y-%m-%d')
 
 api = tweepy.API(auth, wait_on_rate_limit=True)
 #result = api.search(query)
-for query in queries:
-    for status in tweepy.Cursor(api.search, q=query, until='2019-09-19').items():
-        processTweet(status._json)
-    time.sleep(60)
+for i in range(0, num_days):
+    currentdt = startdt + timedelta(days=i)
+    currentdate = datetime.strftime(currentdt, '%Y-%m-%d')
+    for query in queries:
+        print('Query: ' + query)
+        for status in tweepy.Cursor(api.search, q=query, until=currentdate).items():
+            processTweet(status._json)
+    new_days = num_days - i
+    #Save to json file
+    new_object = {"date" : currentdate, "days" : new_days}
+    with open(os.path.join(script_dir, 'search.json'), 'w') as search_file:
+        json.dump(new_object, search_file, indent=4)
