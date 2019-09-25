@@ -157,7 +157,11 @@ def processTweet(tweet):
                     quotes = tweet['quote_count'] if tweet['quote_count'] else 0
                 except:
                     quotes = 0
-                tweet_id = requests.post(panoptic_url+'tweet', data={'statusid' : tweet['id'], 'userid' : user_id, 'twitterid' : user['id'], 'tweet' : strip_non_ascii(text), 'favorites' : favorites, 'retweets' : retweets, 'quotes' : quotes, 'sentiment' : sentiment, 'unix' : unix, 'token' : panoptic_token}).json()['data']
+                try:
+                    tweet_id = requests.post(panoptic_url+'tweet', data={'statusid' : tweet['id'], 'userid' : user_id, 'twitterid' : user['id'], 'tweet' : strip_non_ascii(text), 'favorites' : favorites, 'retweets' : retweets, 'quotes' : quotes, 'sentiment' : sentiment, 'unix' : unix, 'token' : panoptic_token}).json()['data']
+                except:
+                    print('Posting tweet failed')
+                    return False
                 #If quote, add connection, process quote
                 if(tweet['is_quote_status']):
                     try:
