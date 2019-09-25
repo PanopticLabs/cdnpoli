@@ -186,7 +186,7 @@ def processTweet(tweet):
                         requests.post(panoptic_url + 'hashtag', data={'tag' : newword, 'token' : panoptic_token})
                         hashtags.append(newword)
                 #Get current date to check against the database and add to each row
-                datetime = time.strftime('%Y-%m-%d %H:%M:00', time.gmtime())
+                datetime = time.strftime('%Y-%m-%d %H:%M:00', created_at)
 
                 topics = []
                 t = tweet['text'].lower()
