@@ -227,8 +227,10 @@ def processTweet(tweet):
                     tweet_id = results['tweetID']
                     sentiment = results['sentiment']
                     requests.update(panoptic_url+'tweet', data={'tweetid' : tweet_id, 'favorites' : tweet['retweeted_status']['favorite_count'], 'retweets' : tweet['retweeted_status']['retweet_count'], 'quotes' : tweet['retweeted_status']['quote_count'], 'token' : panoptic_token})
+
+                requests.post(panoptic_url + 'connection', data={'userid' : user_id, 'twitterid' : tweet['retweeted_status']['user']['id'], 'screenname' : tweet['retweeted_status']['user']['screen_name'], 'name' : tweet['retweeted_status']['user']['name'], 'tweetid' : tweet_id, 'action' : 'retweet', 'token' : panoptic_token, 'data' : 'twitter'})
+
                 t = text.lower()
-                #print(t)
                 for tag in hashtags:
                     if tag in t.split():
                         #print(json.dumps(text, indent=4, separators=(',', ': ')))

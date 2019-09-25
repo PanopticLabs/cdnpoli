@@ -89,15 +89,13 @@ def startStream():
 
 def processData(data):
     tweet = json.loads(data)
-    print(json.dumps(tweet, indent=4, separators=(',', ': ')))
+    #print(json.dumps(tweet, indent=4, separators=(',', ': ')))
     try:
         user = tweet['user']
     except:
-        try:
-            user = tweet.author
-        except:
-            print('No user!')
-            return False
+        print('No user!')
+        return False
+
     #Check if user is in our spam list
     result = requests.get(panoptic_url + 'spammers?data=twitter&name=' + user['screen_name']).json()['data']
     #If user is not in spam list, continue
@@ -111,9 +109,7 @@ def processData(data):
         friends = user['friends_count'] if user['friends_count'] else 0
 
         status_link = 'https://twitter.com/' + screen_name + '/status/' + tweet['id_str']
-        response = requests.post(panoptic_url+'user', data={'twitterid' : user['id'], 'name' : name, 'screenname' : screen_name, 'description' : description, 'location' : location, 'timezone' : timezone, 'followers' : followers, 'friends' : friends, 'token' : panoptic_token, 'data' : 'twitter'}).json()
-        print(response)
-        user_id = response['data']
+        user_id = requests.post(panoptic_url+'user', data={'twitterid' : user['id'], 'name' : name, 'screenname' : screen_name, 'description' : description, 'location' : location, 'timezone' : timezone, 'followers' : followers, 'friends' : friends, 'token' : panoptic_token, 'data' : 'twitter'}).json()['data']
         print(user_id)
         if(tweet['text'].startswith('RT ') is False): #Remove any retweets
             #Check for tweet
@@ -222,6 +218,9 @@ def processData(data):
                     tweet_id = results['tweetID']
                     sentiment = results['sentiment']
                     requests.update(panoptic_url+'tweet', data={'tweetid' : tweet_id, 'favorites' : tweet['retweeted_status']['favorite_count'], 'retweets' : tweet['retweeted_status']['retweet_count'], 'quotes' : tweet['retweeted_status']['quote_count'], 'token' : panoptic_token})
+
+                requests.post(panoptic_url + 'connection', data={'userid' : user_id, 'twitterid' : tweet['retweeted_status']['user']['id'], 'screenname' : tweet['retweeted_status']['user']['screen_name'], 'name' : tweet['retweeted_status']['user']['name'], 'tweetid' : tweet_id, 'action' : 'retweet', 'token' : panoptic_token, 'data' : 'twitter'})
+                
                 topics = []
                 t = text.lower()
                 for tag in hashtags:
