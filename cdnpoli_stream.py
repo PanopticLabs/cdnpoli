@@ -110,7 +110,6 @@ def processData(data):
 
         status_link = 'https://twitter.com/' + screen_name + '/status/' + tweet['id_str']
         user_id = requests.post(panoptic_url+'user', data={'twitterid' : user['id'], 'name' : name, 'screenname' : screen_name, 'description' : description, 'location' : location, 'timezone' : timezone, 'followers' : followers, 'friends' : friends, 'token' : panoptic_token, 'data' : 'twitter'}).json()['data']
-        print(user_id)
         if(tweet['text'].startswith('RT ') is False): #Remove any retweets
             #Check for tweet
             result = requests.get(panoptic_url+'tweet?tweetid='+tweet['id_str']).json()['data']
@@ -220,7 +219,7 @@ def processData(data):
                     requests.update(panoptic_url+'tweet', data={'tweetid' : tweet_id, 'favorites' : tweet['retweeted_status']['favorite_count'], 'retweets' : tweet['retweeted_status']['retweet_count'], 'quotes' : tweet['retweeted_status']['quote_count'], 'token' : panoptic_token})
 
                 requests.post(panoptic_url + 'connection', data={'userid' : user_id, 'twitterid' : tweet['retweeted_status']['user']['id'], 'screenname' : tweet['retweeted_status']['user']['screen_name'], 'name' : tweet['retweeted_status']['user']['name'], 'tweetid' : tweet_id, 'action' : 'retweet', 'token' : panoptic_token, 'data' : 'twitter'})
-                
+
                 topics = []
                 t = text.lower()
                 for tag in hashtags:
