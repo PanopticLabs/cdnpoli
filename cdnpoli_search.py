@@ -280,8 +280,8 @@ for i in range(0, num_days):
     for query in queries:
         if querycount >= last_query or startdate != currentdate:
             print('Query: ' + query)
-            #for status in tweepy.Cursor(api.search, q=query, until=currentdate).items():
-            #    processTweet(status._json)
+            for status in tweepy.Cursor(api.search, q=query, until=currentdate).items():
+                processTweet(status._json)
 
         querycount += 1
         #Save to json file
