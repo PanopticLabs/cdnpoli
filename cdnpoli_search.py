@@ -255,6 +255,6 @@ print(queries)
 api = tweepy.API(auth, wait_on_rate_limit=True)
 #result = api.search(query)
 for query in queries:
-    for status in tweepy.Cursor(api.search, q=query).items():
+    for status in tweepy.Cursor(api.search, q=query, until='2019-09-19').items():
         processTweet(status._json)
     time.sleep(60)
