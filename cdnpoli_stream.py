@@ -89,7 +89,7 @@ def startStream():
 
 def processData(data):
     tweet = json.loads(data)
-    #print(json.dumps(tweet, indent=4, separators=(',', ': ')))
+    print(json.dumps(tweet, indent=4, separators=(',', ': ')))
     try:
         user = tweet['user']
     except:
@@ -111,7 +111,10 @@ def processData(data):
         friends = user['friends_count'] if user['friends_count'] else 0
 
         status_link = 'https://twitter.com/' + screen_name + '/status/' + tweet['id_str']
-        user_id = requests.post(panoptic_url+'user', data={'twitterid' : user['id'], 'name' : name, 'screenname' : screen_name, 'description' : description, 'location' : location, 'timezone' : timezone, 'followers' : followers, 'friends' : friends, 'token' : panoptic_token, 'data' : 'twitter'}).json()['data']
+        response = requests.post(panoptic_url+'user', data={'twitterid' : user['id'], 'name' : name, 'screenname' : screen_name, 'description' : description, 'location' : location, 'timezone' : timezone, 'followers' : followers, 'friends' : friends, 'token' : panoptic_token, 'data' : 'twitter'}).json()
+        print(response)
+        user_id = response['data']
+        print(user_id)
         if(tweet['text'].startswith('RT ') is False): #Remove any retweets
             #Check for tweet
             result = requests.get(panoptic_url+'tweet?tweetid='+tweet['id_str']).json()['data']
