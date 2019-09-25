@@ -34,8 +34,8 @@ with open(os.path.join(script_dir, 'cred.json')) as json_cred:
 #Setup Panoptic API##############################################################
 #################################################################################
 panoptic_token = cred['panoptic_token']
-#panoptic_url = 'https://api.panoptic.io/cdnpoli/'
-panoptic_url = 'http://localhost/panoptic.io/api/cdnpoli/'
+panoptic_url = 'https://api.panoptic.io/cdnpoli/'
+#panoptic_url = 'http://localhost/panoptic.io/api/cdnpoli/'
 
 #################################################################################
 #Setup Twitter API###############################################################
@@ -275,7 +275,7 @@ for i in range(0, num_days):
     currentdt = startdt + timedelta(days=i)
     currentdate = datetime.strftime(currentdt, '%Y-%m-%d')
     new_days = num_days - i
-    
+
     querycount = 0
     for query in queries:
         if querycount >= last_query or startdate != currentdate:
