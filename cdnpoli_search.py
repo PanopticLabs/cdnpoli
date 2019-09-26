@@ -187,9 +187,9 @@ def processTweet(tweet):
                 topics = []
                 if entities['hashtags']:
                     for entity in entities['hashtags']:
-                        tag = '#'+entity['text']
+                        tag = '#'+entity['text'].lower()
                         if tag not in hashtags:
-                            requests.post(panoptic_url + 'hashtag', data={'topic' : entity['text'], 'token' : panoptic_token})
+                            requests.post(panoptic_url + 'hashtag', data={'topic' : entity['text'].lower(), 'token' : panoptic_token})
                         #Post mention to api
                         requests.post(panoptic_url + 'mention', data={'datetime' : datetime, 'topic' : entity['text'].lower(), 'sentiment' : sentiment, 'token' : panoptic_token, 'data' : 'twitter'})
                         #Post connection
@@ -242,9 +242,9 @@ def processTweet(tweet):
                 topics = []
                 if entities['hashtags']:
                     for entity in entities['hashtags']:
-                        tag = '#'+entity['text']
+                        tag = '#'+entity['text'].lower()
                         if tag not in hashtags:
-                            requests.post(panoptic_url + 'hashtag', data={'topic' : entity['text'], 'token' : panoptic_token})
+                            requests.post(panoptic_url + 'hashtag', data={'topic' : entity['text'].lower(), 'token' : panoptic_token})
                         #Post mention to api
                         requests.post(panoptic_url + 'mention', data={'datetime' : datetime, 'topic' : entity['text'].lower(), 'sentiment' : sentiment, 'token' : panoptic_token, 'data' : 'twitter'})
                         #Post connection
