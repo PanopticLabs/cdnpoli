@@ -167,12 +167,15 @@ def processData(data):
                 topics = []
                 if entities['hashtags']:
                     for entity in entities['hashtags']:
-                        topics.append(entity['text'])
+                        tag = '#'+entity['text']
+                        if tag not in hashtags:
+                            requests.post(panoptic_url + 'hashtag', data={'topic' : entity['text'], 'token' : panoptic_token})
                         #Post mention to api
                         requests.post(panoptic_url + 'mention', data={'datetime' : datetime, 'topic' : entity['text'].lower(), 'sentiment' : sentiment, 'token' : panoptic_token, 'data' : 'twitter'})
                         #Post connection
                         requests.post(panoptic_url + 'connection', data={'userid' : user_id, 'hashtag' : entity['text'].lower(), 'tweetid' : tweet_id, 'action' : 'mention', 'token' : panoptic_token, 'data' : 'twitter'})
-
+                        topics.append(entity['text'])
+                        
                 tweetObj = {'service' : 'cdnpoli', 'name' : user['name'], 'screen_name'  : user['screen_name'], 'pic' : user['profile_image_url'], 'tweet' : text.encode("utf-8"), 'link' : status_link, 'rt_count' : '0', 'fav_count' : '0', 'topics' : topics}
 
                 if 'media' in entities:
@@ -226,11 +229,14 @@ def processData(data):
                 topics = []
                 if entities['hashtags']:
                     for entity in entities['hashtags']:
-                        topics.append(entity['text'])
+                        tag = '#'+entity['text']
+                        if tag not in hashtags:
+                            requests.post(panoptic_url + 'hashtag', data={'topic' : entity['text'], 'token' : panoptic_token})
                         #Post mention to api
                         requests.post(panoptic_url + 'mention', data={'datetime' : datetime, 'topic' : entity['text'].lower(), 'sentiment' : sentiment, 'token' : panoptic_token, 'data' : 'twitter'})
                         #Post connection
                         requests.post(panoptic_url + 'connection', data={'userid' : user_id, 'hashtag' : entity['text'].lower(), 'tweetid' : tweet_id, 'action' : 'mention', 'token' : panoptic_token, 'data' : 'twitter'})
+                        topics.append(entity['text'])
 
                 if topics:
                     #print(topics)

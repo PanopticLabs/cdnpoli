@@ -187,11 +187,14 @@ def processTweet(tweet):
                 topics = []
                 if entities['hashtags']:
                     for entity in entities['hashtags']:
-                        topics.append(entity['text'])
+                        tag = '#'+entity['text']
+                        if tag not in hashtags:
+                            requests.post(panoptic_url + 'hashtag', data={'topic' : entity['text'], 'token' : panoptic_token})
                         #Post mention to api
                         requests.post(panoptic_url + 'mention', data={'datetime' : datetime, 'topic' : entity['text'].lower(), 'sentiment' : sentiment, 'token' : panoptic_token, 'data' : 'twitter'})
                         #Post connection
                         requests.post(panoptic_url + 'connection', data={'userid' : user_id, 'hashtag' : entity['text'].lower(), 'tweetid' : tweet_id, 'action' : 'mention', 'token' : panoptic_token, 'data' : 'twitter'})
+                        topics.append(entity['text'])
 
             else:
                 tweet_id = result['tweetID']
@@ -239,11 +242,14 @@ def processTweet(tweet):
                 topics = []
                 if entities['hashtags']:
                     for entity in entities['hashtags']:
-                        topics.append(entity['text'])
+                        tag = '#'+entity['text']
+                        if tag not in hashtags:
+                            requests.post(panoptic_url + 'hashtag', data={'topic' : entity['text'], 'token' : panoptic_token})
                         #Post mention to api
                         requests.post(panoptic_url + 'mention', data={'datetime' : datetime, 'topic' : entity['text'].lower(), 'sentiment' : sentiment, 'token' : panoptic_token, 'data' : 'twitter'})
                         #Post connection
                         requests.post(panoptic_url + 'connection', data={'userid' : user_id, 'hashtag' : entity['text'].lower(), 'tweetid' : tweet_id, 'action' : 'mention', 'token' : panoptic_token, 'data' : 'twitter'})
+                        topics.append(entity['text'])
 
             except:
                 pass
