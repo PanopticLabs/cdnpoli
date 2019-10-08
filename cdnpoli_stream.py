@@ -5,6 +5,8 @@ from datetime import date, timedelta
 from tweepy import OAuthHandler
 from tweepy import Stream
 from tweepy.streaming import StreamListener
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 #################################################################################
 #Get relative path###############################################################
@@ -27,6 +29,12 @@ with open(os.path.join(script_dir, 'cred.json')) as json_cred:
 #################################################################################
 #Setup Panoptic API##############################################################
 #################################################################################
+session = requests.Session()
+retry = Retry(connect=3, backoff_factor=0.5)
+adapter = HTTPAdapter(max_retries=retry)
+session.mount('http://', adapter)
+session.mount('https://', adapter)
+
 panoptic_token = cred['panoptic_token']
 panoptic_url = 'https://api.panoptic.io/cdnpoli/'
 #panoptic_url = 'http://localhost/panoptic.io/api/cdnpoli/'
@@ -105,10 +113,10 @@ def processData(data):
     friends = user['friends_count'] if user['friends_count'] else 0
 
     status_link = 'https://twitter.com/' + screen_name + '/status/' + tweet['id_str']
-    user_id = requests.post(panoptic_url+'user', data={'twitterid' : user['id'], 'name' : name, 'screenname' : screen_name, 'description' : description, 'location' : location, 'timezone' : timezone, 'followers' : followers, 'friends' : friends, 'token' : panoptic_token, 'data' : 'twitter'}).json()['data']
+    user_id = session.post(panoptic_url+'user', data={'twitterid' : user['id'], 'name' : name, 'screenname' : screen_name, 'description' : description, 'location' : location, 'timezone' : timezone, 'followers' : followers, 'friends' : friends, 'token' : panoptic_token, 'data' : 'twitter'}).json()['data']
     if(tweet['text'].startswith('RT ') is False): #Remove any retweets
         #Check for tweet
-        result = requests.get(panoptic_url+'tweet?tweetid='+tweet['id_str']).json()['data']
+        result = session.get(panoptic_url+'tweet?tweetid='+tweet['id_str']).json()['data']
         if not result:
             if(tweet['truncated']):
                 try:
@@ -141,14 +149,14 @@ def processData(data):
             except:
                 quotes = 0
             try:
-                tweet_id = requests.post(panoptic_url+'tweet', data={'statusid' : tweet['id'], 'userid' : user_id, 'twitterid' : user['id'], 'tweet' : strip_non_ascii(text), 'favorites' : favorites, 'retweets' : retweets, 'quotes' : quotes, 'sentiment' : sentiment, 'unix' : unix, 'token' : panoptic_token}).json()['data']
+                tweet_id = session.post(panoptic_url+'tweet', data={'statusid' : tweet['id'], 'userid' : user_id, 'twitterid' : user['id'], 'tweet' : strip_non_ascii(text), 'favorites' : favorites, 'retweets' : retweets, 'quotes' : quotes, 'sentiment' : sentiment, 'unix' : unix, 'token' : panoptic_token}).json()['data']
             except:
                 print('Posting tweet failed')
                 return False
             #If quote, add connection, process quote
             if(tweet['is_quote_status']):
                 try:
-                    requests.post(panoptic_url + 'connection', data={'userid' : user_id, 'twitterid' : tweet['quoted_status']['user']['id'], 'screenname' : tweet['quoted_status']['user']['screen_name'], 'name' : tweet['quoted_status']['user']['name'], 'tweetid' : tweet_id, 'action' : 'quote', 'token' : panoptic_token, 'data' : 'twitter'})
+                    session.post(panoptic_url + 'connection', data={'userid' : user_id, 'twitterid' : tweet['quoted_status']['user']['id'], 'screenname' : tweet['quoted_status']['user']['screen_name'], 'name' : tweet['quoted_status']['user']['name'], 'tweetid' : tweet_id, 'action' : 'quote', 'token' : panoptic_token, 'data' : 'twitter'})
                     processTweet(tweet['quoted_status'])
                 except:
                     pass
@@ -156,21 +164,21 @@ def processData(data):
             if entities['user_mentions']:
                 for entity in entities['user_mentions']:
                     if(tweet['in_reply_to_user_id'] == entity['id']):
-                        requests.post(panoptic_url + 'connection', data={'userid' : user_id, 'twitterid' : entity['id'], 'screenname' : entity['screen_name'], 'name' : entity['name'], 'tweetid' : tweet_id, 'replyid' : tweet['in_reply_to_status_id'], 'action' : 'reply', 'token' : panoptic_token, 'data' : 'twitter'})
+                        session.post(panoptic_url + 'connection', data={'userid' : user_id, 'twitterid' : entity['id'], 'screenname' : entity['screen_name'], 'name' : entity['name'], 'tweetid' : tweet_id, 'replyid' : tweet['in_reply_to_status_id'], 'action' : 'reply', 'token' : panoptic_token, 'data' : 'twitter'})
                     else:
-                        requests.post(panoptic_url + 'connection', data={'userid' : user_id, 'twitterid' : entity['id'], 'screenname' : entity['screen_name'], 'name' : entity['name'], 'tweetid' : tweet_id, 'action' : 'at', 'token' : panoptic_token, 'data' : 'twitter'})
+                        session.post(panoptic_url + 'connection', data={'userid' : user_id, 'twitterid' : entity['id'], 'screenname' : entity['screen_name'], 'name' : entity['name'], 'tweetid' : tweet_id, 'action' : 'at', 'token' : panoptic_token, 'data' : 'twitter'})
 
             topics = []
             if entities['hashtags']:
                 for entity in entities['hashtags']:
                     tag = '#'+entity['text'].lower()
                     if tag not in hashtags:
-                        requests.post(panoptic_url + 'hashtag', data={'topic' : entity['text'].lower(), 'token' : panoptic_token})
+                        session.post(panoptic_url + 'hashtag', data={'topic' : entity['text'].lower(), 'token' : panoptic_token})
                         hashtags.append(tag)
                     #Post mention to api
-                    requests.post(panoptic_url + 'mention', data={'datetime' : datetime, 'topic' : entity['text'].lower(), 'sentiment' : sentiment, 'token' : panoptic_token, 'data' : 'twitter'})
+                    session.post(panoptic_url + 'mention', data={'datetime' : datetime, 'topic' : entity['text'].lower(), 'sentiment' : sentiment, 'token' : panoptic_token, 'data' : 'twitter'})
                     #Post connection
-                    requests.post(panoptic_url + 'connection', data={'userid' : user_id, 'hashtag' : entity['text'].lower(), 'tweetid' : tweet_id, 'action' : 'mention', 'token' : panoptic_token, 'data' : 'twitter'})
+                    session.post(panoptic_url + 'connection', data={'userid' : user_id, 'hashtag' : entity['text'].lower(), 'tweetid' : tweet_id, 'action' : 'mention', 'token' : panoptic_token, 'data' : 'twitter'})
                     topics.append(entity['text'])
 
             tweetObj = {'service' : 'cdnpoli', 'name' : user['name'], 'screen_name'  : user['screen_name'], 'pic' : user['profile_image_url'], 'tweet' : text.encode("utf-8"), 'link' : status_link, 'rt_count' : '0', 'fav_count' : '0', 'topics' : topics}
@@ -183,7 +191,7 @@ def processData(data):
         else:
             tweet_id = result['tweetID']
             #Update favorite, retweet, quote counts
-            requests.update(panoptic_url+'tweet', data={'tweetid' : tweet_id, 'favorites' : tweet['favorite_count'], 'retweets' : tweet['retweet_count'], 'quotes' : tweet['quote_count'], 'token' : panoptic_token})
+            session.update(panoptic_url+'tweet', data={'tweetid' : tweet_id, 'favorites' : tweet['favorite_count'], 'retweets' : tweet['retweet_count'], 'quotes' : tweet['quote_count'], 'token' : panoptic_token})
 
         return True
 
@@ -204,7 +212,7 @@ def processData(data):
                 text = tweet['retweeted_status']['text']
                 entities = tweet['retweeted_status']['entities']
 
-            result = requests.get(panoptic_url+'tweet?tweetid='+tweet['retweeted_status']['id_str']).json()['data']
+            result = session.get(panoptic_url+'tweet?tweetid='+tweet['retweeted_status']['id_str']).json()['data']
             if not result:
                 analysis = tb(text)
                 sentiment = analysis.sentiment.polarity
@@ -215,25 +223,25 @@ def processData(data):
                 datetime = time.strftime('%Y-%m-%d %H:%M:00', created_at)
 
                 #Add tweet
-                tweet_id = requests.post(panoptic_url+'tweet', data={'statusid' : tweet['retweeted_status']['id'], 'userid' : user_id, 'twitterid' : tweet['retweeted_status']['user']['id'], 'tweet' : strip_non_ascii(text), 'favorites' : tweet['retweeted_status']['favorite_count'], 'retweets' : tweet['retweeted_status']['retweet_count'], 'quotes' : tweet['retweeted_status']['quote_count'], 'sentiment' : sentiment, 'unix' : unix, 'token' : panoptic_token}).json()['data']
+                tweet_id = session.post(panoptic_url+'tweet', data={'statusid' : tweet['retweeted_status']['id'], 'userid' : user_id, 'twitterid' : tweet['retweeted_status']['user']['id'], 'tweet' : strip_non_ascii(text), 'favorites' : tweet['retweeted_status']['favorite_count'], 'retweets' : tweet['retweeted_status']['retweet_count'], 'quotes' : tweet['retweeted_status']['quote_count'], 'sentiment' : sentiment, 'unix' : unix, 'token' : panoptic_token}).json()['data']
             else:
                 tweet_id = results['tweetID']
                 sentiment = results['sentiment']
-                requests.update(panoptic_url+'tweet', data={'tweetid' : tweet_id, 'favorites' : tweet['retweeted_status']['favorite_count'], 'retweets' : tweet['retweeted_status']['retweet_count'], 'quotes' : tweet['retweeted_status']['quote_count'], 'token' : panoptic_token})
+                session.update(panoptic_url+'tweet', data={'tweetid' : tweet_id, 'favorites' : tweet['retweeted_status']['favorite_count'], 'retweets' : tweet['retweeted_status']['retweet_count'], 'quotes' : tweet['retweeted_status']['quote_count'], 'token' : panoptic_token})
 
-            requests.post(panoptic_url + 'connection', data={'userid' : user_id, 'twitterid' : tweet['retweeted_status']['user']['id'], 'screenname' : tweet['retweeted_status']['user']['screen_name'], 'name' : tweet['retweeted_status']['user']['name'], 'tweetid' : tweet_id, 'action' : 'retweet', 'token' : panoptic_token, 'data' : 'twitter'})
+            session.post(panoptic_url + 'connection', data={'userid' : user_id, 'twitterid' : tweet['retweeted_status']['user']['id'], 'screenname' : tweet['retweeted_status']['user']['screen_name'], 'name' : tweet['retweeted_status']['user']['name'], 'tweetid' : tweet_id, 'action' : 'retweet', 'token' : panoptic_token, 'data' : 'twitter'})
 
             topics = []
             if entities['hashtags']:
                 for entity in entities['hashtags']:
                     tag = '#'+entity['text'].lower()
                     if tag not in hashtags:
-                        requests.post(panoptic_url + 'hashtag', data={'topic' : entity['text'].lower(), 'token' : panoptic_token})
+                        session.post(panoptic_url + 'hashtag', data={'topic' : entity['text'].lower(), 'token' : panoptic_token})
                         hashtags.append(tag)
                     #Post mention to api
-                    requests.post(panoptic_url + 'mention', data={'datetime' : datetime, 'topic' : entity['text'].lower(), 'sentiment' : sentiment, 'token' : panoptic_token, 'data' : 'twitter'})
+                    session.post(panoptic_url + 'mention', data={'datetime' : datetime, 'topic' : entity['text'].lower(), 'sentiment' : sentiment, 'token' : panoptic_token, 'data' : 'twitter'})
                     #Post connection
-                    requests.post(panoptic_url + 'connection', data={'userid' : user_id, 'hashtag' : entity['text'].lower(), 'tweetid' : tweet_id, 'action' : 'mention', 'token' : panoptic_token, 'data' : 'twitter'})
+                    session.post(panoptic_url + 'connection', data={'userid' : user_id, 'hashtag' : entity['text'].lower(), 'tweetid' : tweet_id, 'action' : 'mention', 'token' : panoptic_token, 'data' : 'twitter'})
                     topics.append(entity['text'])
 
             if topics:
